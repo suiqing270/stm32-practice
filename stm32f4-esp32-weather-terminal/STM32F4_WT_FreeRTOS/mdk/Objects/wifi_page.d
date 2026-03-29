@@ -1,0 +1,8 @@
+.\objects\wifi_page.o: ..\app\page\wifi_page.c
+.\objects\wifi_page.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\objects\wifi_page.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
+.\objects\wifi_page.o: ..\app\wifi.h
+.\objects\wifi_page.o: ..\app\ui.h
+.\objects\wifi_page.o: ..\app\font\font.h
+.\objects\wifi_page.o: ..\app\image\image.h
+.\objects\wifi_page.o: ..\app\app.h

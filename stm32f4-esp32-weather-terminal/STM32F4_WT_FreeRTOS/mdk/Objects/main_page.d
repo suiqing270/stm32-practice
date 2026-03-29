@@ -1,0 +1,11 @@
+.\objects\main_page.o: ..\app\page\main_page.c
+.\objects\main_page.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\objects\main_page.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
+.\objects\main_page.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
+.\objects\main_page.o: ..\driver\rtc\rtc.h
+.\objects\main_page.o: ..\app\wifi.h
+.\objects\main_page.o: ..\app\ui.h
+.\objects\main_page.o: ..\app\font\font.h
+.\objects\main_page.o: ..\app\image\image.h
+.\objects\main_page.o: ..\app\app.h
+.\objects\main_page.o: ..\app\page\page.h
