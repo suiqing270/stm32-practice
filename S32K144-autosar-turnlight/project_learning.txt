@@ -1,0 +1,299 @@
+下面是一份按“做什么 → 产出什么 → 学到什么”重新整理的方案。目标不是读完整个仓库，而是建立三条主线：
+1.	业务控制链 
+2.	OS/RTE 调度链 
+3.	CAN/诊断通信链
+总投入建议：40～50 小时，3～5 周。如果加入简化实验，增加 8～12 小时。
+________________________________________
+步骤 1：确认项目边界
+重点做什么
+•	阅读 README.md
+•	确认 MCU、AUTOSAR 类型、工具链和应用功能
+•	区分手写代码、Simulink 生成代码、RTE 生成代码、BSW/MCAL 代码
+•	检查仓库中是否存在 .slx、.eww、.dpa、ARXML 等文件
+•	记录哪些内容可以从源码确认，哪些只能推断，哪些完全没有验证
+重点阅读
+•	F:\Codex_project\-SOA--master\README.md
+•	F:\Codex_project\-SOA--master\Appl\Source
+•	F:\Codex_project\-SOA--master\Config
+•	F:\Codex_project\-SOA--master\Appl\GenData
+产出
+一页项目说明：
+项目：S32K144 上的 AUTOSAR Classic/CP 转向灯控制项目
+应用：转向灯、危险警报、灯状态诊断
+代码来源：Simulink 生成 SW-C + RTE/BSW/MCAL 生成代码 + CDD/辅助代码
+个人边界：完成源码研读，没有声称完成原始开发、工具配置或硬件验证
+学到的内容
+•	AUTOSAR 项目的组成
+•	生成代码和手写代码的区别
+•	如何判断“源码事实”和“个人推断”
+________________________________________
+步骤 2：建立 AUTOSAR 分层认识
+重点做什么
+画出项目的实际软件结构：
+TurnLight / TurnLightArb / TurnLightAct
+                    ↓
+                   RTE
+        ↓                       ↓
+   Com/PduR/CanIf          CDD/IoHwAb
+   CanTp/Dcm/Dem            ↓
+   EcuM/BswM/SchM/OS       Dio/MCAL
+                                ↓
+                           S32K144
+重点理解：
+•	应用层 SW-C 负责业务逻辑
+•	RTE 负责接口适配和通信
+•	OS 负责任务和事件调度
+•	BSW 负责通信、诊断、状态管理
+•	MCAL 负责芯片外设
+•	CDD 负责特殊硬件访问或非标准功能
+产出
+一张分层图，并为每一层写一句职责说明。
+学到的内容
+•	AUTOSAR Classic 的基本分层
+•	为什么应用层不直接操作寄存器
+•	CDD、IoHwAb、MCAL 的区别
+•	RTE 为什么是应用与 BSW 之间的边界
+________________________________________
+步骤 3：追踪转向灯业务链
+重点做什么
+阅读：
+•	F:\Codex_project\-SOA--master\Appl\Source\TurnLight.c
+•	F:\Codex_project\-SOA--master\Appl\Source\TurnLightArb.c
+•	F:\Codex_project\-SOA--master\Appl\Source\TurnLightAct.c
+•	F:\Codex_project\-SOA--master\Appl\Source\Cdd_IoHwAb.c
+重点理解：
+•	左转、右转、危险警报
+•	长闪、短闪、双闪
+•	输出优先级
+•	四路灯状态
+•	开路、短路反馈
+•	TurnLight、TurnLightArb、TurnLightAct 的职责边界
+实际调用链应整理为：
+输入信号
+  ↓
+TurnLight_Runnable_10ms
+  ↓
+Rte_Read
+  ↓
+TurnLight 控制逻辑
+  ↓
+Rte_Call_TurnLightService_TurnLightControl_Operation
+  ↓
+TurnLightArb 仲裁
+  ↓
+Rte_Write 四路灯输出
+  ↓
+TurnLightAct
+  ↓
+Rte_Call IoHwAb 接口
+  ↓
+Dio_WriteChannel
+  ↓
+PTD0/PTD1/PTD15/PTD16
+产出
+至少完成一个完整时序说明，例如：
+当 TurnLampSw 为左转请求且点火状态有效时，TurnLight 生成左转控制参数，TurnLightArb 根据优先级生成四路输出，TurnLightAct 将输出转换为执行命令，再通过 IoHwAb 和 Dio 写入对应 S32K144 GPIO。
+学到的内容
+•	如何阅读 Simulink 生成的状态机代码
+•	SW-C 之间如何通过 RTE 通信
+•	Client/Server 调用在实际代码中的表现
+•	业务状态如何最终转化为硬件输出
+________________________________________
+步骤 4：理解 RTE、OS 和 Runnable 调度
+重点做什么
+阅读：
+•	F:\Codex_project\-SOA--master\Appl\GenData\Rte.c
+•	F:\Codex_project\-SOA--master\Appl\GenData\Rte.oil
+•	F:\Codex_project\-SOA--master\Appl\GenData\Components\Rte_TurnLight.h
+•	F:\Codex_project\-SOA--master\Appl\GenData\Components\Rte_TurnLightArb.h
+•	F:\Codex_project\-SOA--master\Appl\GenData\Components\Rte_TurnLightAct.h
+重点追踪：
+SystemTimer
+  ↓
+OS Alarm
+  ↓
+SetEvent
+  ↓
+OsTask_BSW_SCHM
+  ↓
+Rte.c
+  ↓
+三个 10 ms Runnable
+明确区分：
+•	Timing Event：Runnable 的周期需求
+•	OS Alarm：产生周期事件
+•	OS Task：真正被 OS 调度执行
+•	RTE：把 Task 事件映射为 Runnable 调用
+•	Runnable：SW-C 中实际执行的函数
+产出
+一张调度图，并回答：
+TurnLight_Runnable_10ms() 不是由应用主动调用，而是由 OS Task 收到 10 ms 事件后，通过生成的 Rte.c 调用。
+学到的内容
+•	Runnable、Timing Event、Task、Alarm 的关系
+•	Rte_Read、Rte_Write、Rte_Call
+•	Sender/Receiver 与 Client/Server
+•	RTE 与 OS、BSW 的关系
+________________________________________
+步骤 5：追踪 Dio、Port 和 S32K144 外设
+重点做什么
+只研究和本项目直接相关的外设：
+•	Dio
+•	Port
+•	Mcu/EcuM 初始化
+•	Spi/CddSbc
+•	Wdg 的基本作用
+重点核对：
+•	Dio 通道符号
+•	Port Pin 配置
+•	GPIO 方向
+•	初始电平
+•	PCR 配置
+•	S32K144 引脚和端口映射
+产出
+完成一张映射表：
+逻辑灯	Dio 通道	S32K144 引脚
+FL	DioChannel_PTD0	PTD0
+FR	DioChannel_PTD1	PTD1
+RL	DioChannel_PTD15	PTD15
+RR	DioChannel_PTD16	PTD16
+并说明：
+应用层不直接访问 PTD0 寄存器，而是通过 IoHwAb → Dio API → MCAL → S32K144 GPIO。
+学到的内容
+•	AUTOSAR Dio/Port 和 STM32 GPIO/HAL 的对应关系
+•	MCAL 如何屏蔽芯片寄存器差异
+•	配置文件如何生成符号化 API
+•	CDD 如何连接上层业务和底层驱动
+________________________________________
+步骤 6：追踪 CAN 信号链和诊断链
+CAN 信号链
+重点做什么
+选择一个信号，例如 TurnLampSw 或 HazardSw，完整追踪：
+CAN 硬件
+  ↓
+Can
+  ↓
+CanIf
+  ↓
+PduR
+  ↓
+Com
+  ↓
+Com_ReceiveSignal
+  ↓
+Rte_Read
+  ↓
+TurnLight.c
+同时追踪一个输出信号：
+TurnLightAct
+  ↓
+Rte_Write
+  ↓
+Com_SendSignal
+  ↓
+PduR
+  ↓
+CanIf
+  ↓
+Can
+  ↓
+CAN 总线
+诊断链
+重点做什么
+理解：
+CAN
+  ↓
+CanIf
+  ↓
+PduR
+  ↓
+CanTp
+  ↓
+PduR
+  ↓
+Dcm
+  ↓
+Dem 或 DID 数据回调
+重点学习：
+•	Can：访问 CAN 控制器
+•	CanIf：CAN 驱动适配
+•	PduR：PDU 路由
+•	Com：信号打包和解包
+•	CanTp：诊断多帧传输
+•	Dcm：UDS 服务处理
+•	Dem：故障事件和 DTC 管理
+产出
+两张图：
+1.	一个 CAN 信号进入 TurnLight.c 的路径
+2.	一个 UDS 请求到达 Dcm 的路径
+学到的内容
+•	CAN Frame、PDU、I-PDU、Signal 的区别
+•	CanIf、PduR、Com 的职责边界
+•	Dcm 和 Dem 的区别
+•	为什么不能把“配置存在”说成“已经做过实车诊断测试”
+________________________________________
+步骤 7：制作面试材料
+重点做什么
+准备以下材料：
+1.	60～90 秒项目介绍
+2.	AUTOSAR 分层图
+3.	转向灯业务链图
+4.	RTE/OS 调度图
+5.	CAN 信号链图
+6.	UDS 诊断链图
+7.	STM32 与 S32K144 对比表
+8.	“已确认、推断、未知”清单
+建议把知识分成三类：
+类型	示例
+源码确认	Rte.c 调用三个 10 ms Runnable
+配置确认	TurnLampSw 映射到 Com 信号
+尚未验证	是否在真实开发板上运行、是否用 CANoe 测试
+推荐表述
+我没有参与这个项目的原始开发，而是对其生成代码、ARXML、RTE/OS 配置和 BSW/MCAL 接口进行了系统研读。我重点分析了转向灯业务链、10 ms Runnable 调度、CAN 信号路径以及 Dio 输出路径。对于 Simulink 模型生成、EB tresos/DaVinci 配置、硬件下载和实车诊断，我会明确说明没有亲自完成。
+学到的内容
+•	如何把大量源码压缩成结构化表达
+•	如何在面试中区分“读过”“配置过”“验证过”
+•	如何避免过度包装项目经历
+________________________________________
+步骤 8：做一个简化实验
+没有工具许可证时
+建议用 C 实现一个最小练习：
+OFF
+LEFT
+RIGHT
+HAZARD
+模拟：
+Rte_Read(...)
+Rte_Write(...)
+Rte_Call(...)
+实现：
+•	10 ms 周期函数
+•	左右转状态机
+•	危险警报优先级
+•	四路灯输出
+•	简单单元测试
+有 Simulink 时
+再尝试：
+•	建立 Stateflow 状态机
+•	配置 10 ms Runnable
+•	配置输入输出端口
+•	生成 AUTOSAR 风格代码
+•	和仓库中的 TurnLight.c 对比
+产出
+一份独立练习代码和测试结果，并明确说明：
+这是个人练习，用于理解 AUTOSAR SW-C 和 RTE 接口，不是原项目的复刻。
+学到的内容
+•	从需求到状态机的转换
+•	Runnable 和 RTE 接口的实际使用
+•	生成代码的基本结构
+•	如何验证业务逻辑，而不依赖完整商业工具链
+________________________________________
+建议时间安排
+周次	主要内容
+第 1 周	步骤 1～2：项目边界和 AUTOSAR 分层
+第 2 周	步骤 3：转向灯业务调用链
+第 3 周	步骤 4～6：RTE、OS、MCAL、CAN、诊断
+第 4 周	步骤 7：图表、讲稿和面试问题
+第 5 周	步骤 8：简化实验和模拟面试
+最终目标不要定成“掌握整个 AUTOSAR”，而应定成：
+能基于仓库源码准确讲清一个 AUTOSAR Classic 项目的架构、业务调用链、OS/RTE 调度链、CAN/诊断链，并能诚实区分源码阅读经验和实际开发验证经验。
+

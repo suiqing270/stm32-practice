@@ -1,0 +1,44 @@
+# Auto-detect text files and normalize line endings
+* text=auto
+
+# C source files
+*.c text eol=lf
+*.h text eol=lf
+
+# Scripts
+*.py text eol=lf
+*.bat text eol=crlf
+
+# Markdown / text docs
+*.md text eol=lf
+*.txt text eol=lf
+
+# Config / project files
+*.xml text eol=lf
+*.arxml text eol=lf
+*.eww text eol=lf
+*.ewp text eol=lf
+*.ewd text eol=lf
+*.ewt text eol=lf
+*.dep text eol=lf
+*.launch text eol=lf
+*.cfg text eol=lf
+*.lsl text eol=lf
+*.mak text eol=lf
+*.xdm text eol=lf
+*.tdb text eol=lf
+*.html text eol=lf
+*.gitignore text eol=lf
+*.gitattributes text eol=lf
+
+# DBC / CAN database files
+*.dbc text eol=lf
+*.cdd text eol=lf
+
+# Binary
+*.dpa binary
+*.dcusr binary
+*.o binary
+*.elf binary
+*.hex binary
+*.map binary

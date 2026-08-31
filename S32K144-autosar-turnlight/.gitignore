@@ -1,0 +1,49 @@
+# === 构建产物 ===
+Debug/
+Appl/dep/
+Appl/err/
+Appl/log/
+Appl/lst/
+Appl/obj/
+Appl/lib/
+Appl/*.o
+Appl/*.d
+Appl/*.dbo
+*.o
+*.d
+*.elf
+*.hex
+*.map
+*.out
+
+# === 工具备份文件 ===
+*.bak
+*.bak_*
+*.~*
+
+# === EB tresos Studio 用户配置（勿公开） ===
+*.dcusr
+*.silent.dcusr
+*.dpa
+Log/
+
+# === IDE / 工作区元数据 ===
+.vscode/
+.settings/
+.metadata/
+.cproject
+.project
+**/.metadata/
+**/.project
+**/.cproject
+**/.settings/
+
+# === MCAL 临时 ===
+**/.tresoslog
+
+# === 调试连接日志 ===
+__connection_failed_report__*.txt
+
+# === OS 文件 ===
+Thumbs.db
+.DS_Store
